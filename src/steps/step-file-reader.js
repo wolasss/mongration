@@ -2,10 +2,13 @@
 
 var assert = require('assert');
 var fs = require('fs');
-var md5 = require('md5');
+var crypto = require('crypto');
+
 var merge = require("lodash/merge");
 
 var Step = require('./step');
+
+const md5 = data => crypto.createHash('md5').update(data).digest("hex")
 
 function StepFile(path){
     assert.notEqual(path, null);
