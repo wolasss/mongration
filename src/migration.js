@@ -118,7 +118,7 @@ Migration.prototype.migrate = async function(doneCb) {
                 status : step.status
             }
         });
-        this.client.close();
+        if(this.client) this.client.close();
         doneCb(err, resp);
     }.bind(this);
 
