@@ -4,7 +4,7 @@ var assert = require('assert');
 var fs = require('fs');
 var crypto = require('crypto');
 
-var merge = require("lodash/merge");
+var merge = require("../utils/utility-functions/deep-merge");
 
 var Step = require('./step');
 

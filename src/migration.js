@@ -6,7 +6,7 @@ var async = require('async');
 var fs = require('fs');
 var path = require('path');
 
-var merge = require("lodash/merge");
+var merge = require("./utils/utility-functions/deep-merge");
 
 var statuses = require('./utils/constants').statuses;
 var MongoConnection = require('./utils/mongo-connection');
@@ -110,7 +110,7 @@ Migration.prototype.addAllFromPath = function(dirpath) {
     }.bind(this));
 };
 
-Migration.prototype.migrate = function(doneCb) {
+Migration.prototype.migrate = async function(doneCb) {
     var callback = function(err){
         var resp = this.steps.map(function(step){
             return {
@@ -128,30 +128,33 @@ Migration.prototype.migrate = function(doneCb) {
         this.steps.push(_step);
     }.bind(this));
 
-    new MongoConnection(this.dbConfig).connect(function(err, client){
-        assert.equal(err, null);        
+    const client = new MongoConnection(this.dbConfig);
+
+    try {
+        await client.connect();
+        assert.equal(err, null);
         this.client = client;
         this.db = client.db(client.s.options.dbName);
 
-        validate.call(this, function(err){
-            if(err){
+        validate.call(this, function (err) {
+            if (err) {
                 return callback(err);
             }
             async.series(
-                this.steps.map(function(step){
-                    return function(cb){
-                        if(step.status === statuses.skipped){
+                this.steps.map(function (step) {
+                    return function (cb) {
+                        if (step.status === statuses.skipped) {
                             step.status = statuses.skipped;
                             cb();
-                        }else if(step.status === statuses.pending){
-                            step.up(this.db, function(err){
-                                if(err){
+                        } else if (step.status === statuses.pending) {
+                            step.up(this.db, function (err) {
+                                if (err) {
                                     step.status = statuses.error;
                                     return cb("[" + step.id + "] unable to complete migration: " + err);
                                 }
 
-                                this.db.collection(this.collection).insertOne(new StepVersionCollection(step.id, step.checksum, step.order, new Date()), function(err){
-                                    if(err){
+                                this.db.collection(this.collection).insertOne(new StepVersionCollection(step.id, step.checksum, step.order, new Date()), function (err) {
+                                    if (err) {
                                         step.status = statuses.error;
                                         return cb("[" + step.id + "] failed to save migration version: " + err);
                                     }
@@ -163,16 +166,18 @@ Migration.prototype.migrate = function(doneCb) {
                     }.bind(this)
                 }.bind(this)),
 
-                function(err){
-                    if(err){
+                function (err) {
+                    if (err) {
                         rollback.call(this, callback, err);
-                    }else{
+                    } else {
                         callback();
                     }
                 }.bind(this)
             );
         }.bind(this));
-    }.bind(this));
+    } catch(err) {
+        callback(err);
+    }        
 };
 
 module.exports = Migration;
