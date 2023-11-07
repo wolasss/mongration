@@ -4,7 +4,7 @@ var assert = require('assert');
 
 var MongoClient = require('mongodb').MongoClient;
 
-function MongoConnection(config){
+function MongoConnection(config, client){
     
     if(config.mongoUri){
         this.connectionUri = config.mongoUri;
@@ -16,19 +16,23 @@ function MongoConnection(config){
         this.user = config.user;
         this.password = config.password;
         this.replicaSet = config.replicaSet;
+        this.client = client;
     }
 }
 
 MongoConnection.prototype.connect = async function(cb){
+    if(!this.client) {
+        var client = new MongoClient(this.connectionUri || this.getConnectionUri());
 
-    var client = new MongoClient(this.connectionUri || this.getConnectionUri());
-
-    try {
-        await client.connect();
-        cb(null, client);
-    } catch (e) {
-        cb(e);
-    }
+        try {
+            await client.connect();
+            cb(null, client);
+        } catch (e) {
+            cb(e);
+        }
+    } else {
+        cb(null, this.client);
+    }   
 }
 
 MongoConnection.prototype.getConnectionUri = function(){
