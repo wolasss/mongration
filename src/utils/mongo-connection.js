@@ -8,7 +8,7 @@ function MongoConnection(config, client){
     
     if(config.mongoUri){
         this.connectionUri = config.mongoUri;
-    }else{
+    } else {
         assert.notEqual(config.hosts, null);
 
         this.hosts = config.hosts;
@@ -16,8 +16,9 @@ function MongoConnection(config, client){
         this.user = config.user;
         this.password = config.password;
         this.replicaSet = config.replicaSet;
-        this.client = client;
     }
+    this.client = client;
+
 }
 
 MongoConnection.prototype.connect = async function(cb){
