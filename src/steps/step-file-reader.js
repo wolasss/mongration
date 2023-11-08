@@ -27,7 +27,8 @@ StepFile.prototype.read = function(){
 
 StepFile.prototype.getStep = function(){
     var obj = require(this.path);
-    return new Step(merge(obj, {checksum : this.checksum}));
+
+    return new Step(merge(obj?.default || obj, {checksum : this.checksum}));
 }
 
 module.exports = StepFile;
