@@ -10,27 +10,19 @@ var Step = require('./step');
 
 const md5 = data => crypto.createHash('md5').update(data).digest("hex")
 
-function StepFile(path){
-    assert.notEqual(path, null);
-    
-    this.path = path;
-    this.content = null;
+function StepFile(content){    
+    this.content = content?.default || content;
     this.checksum = null;
 }
 
 StepFile.prototype.read = function(){
-    this.content = fs.readFileSync(this.path, {encoding : 'utf8'});
-    this.checksum = md5(this.content);
+    this.checksum = md5(JSON.stringify(this.content));
 
     return this;
 }
 
 StepFile.prototype.getStep = function(){
-    var obj = require(this.path);
-
-    console.log(obj);
-
-    return new Step(merge(obj?.default || obj, {checksum : this.checksum}));
+    return new Step(merge(this.content, {checksum : this.checksum}));
 }
 
 module.exports = StepFile;
