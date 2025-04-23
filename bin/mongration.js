@@ -1,29 +1,27 @@
 #!/usr/bin/env node
 
-var mongration = require('commander');
-var path = require('path');
-var fs = require('fs');
-var chalk = require('chalk');
-var merge = require("src/utils/utility-functions/deep-merge");
+import mongration from 'commander';
+import path from 'path';
+import fs from 'fs';
+import chalk from 'chalk';
+import merge from "src/utils/utility-functions/deep-merge";
+import consoleTable from 'console.table';
+import { Migration } from '../index.js'; // Assuming that '../' is the path to the module that exports Migration
 
-require('console.table');
+mongration
+    .option('-f, --folder [value]', 'migrations folder (current dir is default)')
+    .option('-h, --hosts [value]', 'mongoDB hosts')
+    .option('-d, --database [value]', 'mongoDB database')
+    .option('-u, --user [value]', 'mongoDB user')
+    .option('-p, --password [value]', 'mongoDB password')
+    .option('-m, --migration-collection [value]', 'collection to save migrations state')
+    .option('-c, --config [value]', 'path to config file')
+    .parse(process.argv);
 
-var Mongration = require('../');
+let config = {};
 
-mongration.
-    option('-f, --folder [value]', 'migrations folder (current dir is default)').
-    option('-h, --hosts [value]', 'mongoDB hosts').
-    option('-d, --database [value]', 'mongoDB database').
-    option('-u, --user [value]', 'mongoDB user').
-    option('-p, --password [value]', 'mongoDB password').
-    option('-m, --migration-collection [value]', 'collection to save migrations state').
-    option('-c, --config [value]', 'path to config file').
-    parse(process.argv);
-
-var config = {};
-
-if(mongration.config) {
-    config = require(path.resolve(mongration.config));
+if (mongration.config) {
+    config = await import(path.resolve(mongration.config)); // Using dynamic import for JSON or config files
 }
 
 config = merge(config, {
@@ -35,21 +33,21 @@ config = merge(config, {
     migrationsFolder: path.resolve(mongration.folder || config.folder || './')
 });
 
-var files = fs.readdirSync(config.migrationsFolder);
+const files = fs.readdirSync(config.migrationsFolder);
 
-var filePaths = files.map(function(file) {
-    return path.resolve(__dirname, config.migrationsFolder + '/' + file);
+const filePaths = files.map(file => {
+    return path.resolve(path.dirname(new URL(import.meta.url).pathname), config.migrationsFolder, file);
 });
 
-var migration = new Mongration.Migration(config);
+const migration = new Migration(config);
 
 migration.add(filePaths);
 
-console.log(chalk.blue('Mongration - Migration Runnner'));
-console.log(chalk.blue('=============================='));
+console.log(chalk.blue('Mongration - Migration Runner'));
+console.log(chalk.blue('============================='));
 console.log('');
 
-var statusesColors = {
+const statusesColors = {
     'ok': 'green',
     'skipped': 'green',
     'error': 'red',
@@ -57,11 +55,10 @@ var statusesColors = {
     'rollback-error': 'red'
 };
 
-migration.migrate(function(err, results) {
-    console.table(
-        results.map(function(result) {
-            var color = statusesColors[result.status] || 'reset';
-
+migration.migrate((err, results) => {
+    consoleTable(
+        results.map(result => {
+            const color = statusesColors[result.status] || 'reset';
             return {
                 'Migration': chalk[color](result.id),
                 'Status': chalk[color](result.status)
@@ -69,7 +66,7 @@ migration.migrate(function(err, results) {
         })
     );
 
-    if(err) {
+    if (err) {
         console.error(chalk.red(err));
         process.exit(1);
     }

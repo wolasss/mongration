@@ -21,18 +21,15 @@ function MongoConnection(config, client){
 
 }
 
-MongoConnection.prototype.connect = async function(cb){
+MongoConnection.prototype.connect = async function(){
     if(!this.client) {
-        var client = new MongoClient(this.connectionUri || this.getConnectionUri());
+        this.client = new MongoClient(this.connectionUri || this.getConnectionUri());
 
-        try {
-            await client.connect();
-            cb(null, client);
-        } catch (e) {
-            cb(e);
-        }
+        await this.client.connect();
+        
+        return this.client;
     } else {
-        cb(null, this.client);
+        return this.client;
     }   
 }
 
